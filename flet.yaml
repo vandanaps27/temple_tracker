@@ -1,0 +1,9 @@
+# 🛕 Temple Tracker Configuration Configuration
+app:
+  name: "Temple Tracker"
+  package_name: "com.temple.tracker"
+  version: "1.0.0"
+
+android:
+  permissions:
+    - android.permission.INTERNET
