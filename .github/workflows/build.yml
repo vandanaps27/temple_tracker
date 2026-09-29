@@ -20,7 +20,7 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. Setup Flutter Environment (Updated to match your exact Flet framework version requirements)
+    # 3. Setup Flutter Environment
     - name: Set up Flutter Toolchain
       uses: subosito/flutter-action@v2
       with:
@@ -44,10 +44,15 @@ jobs:
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-    # 7. Execute compilation (Added --no-interactive flag to prevent automated prompt freezes)
+    # 7. Execute compilation (Dynamically mapping FLUTTER_ROOT using shell resolution)
     - name: Run Flet Build Engine
       run: |
-        flet build apk --no-interactive
+        # Locate the precise directory where the action unpacked Flutter
+        FLUTTER_BIN_DIR=$(dirname $(which flutter))
+        export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
+        
+        echo "Resolved Flutter Root at: $FLUTTER_ROOT"
+        flet build apk
 
     # 8. Deliver the Finalized Installation Package
     - name: Upload Finalized APK Artifact
