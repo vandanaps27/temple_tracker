@@ -14,37 +14,42 @@ jobs:
     # 1. Pull the codebase cleanly
     - uses: actions/checkout@v4
 
-    # 2. Boot Up Java JDK required by the internal Android builder
+    # 2. Boot Up Java JDK required by the internal Android SDK compiler
     - uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. Provision the Python Runtime 
+    # 3. Setup Flutter Environment (Required natively under-the-hood by Flet)
+    - name: Set up Flutter Toolchain
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+        flutter-version: '3.24.0'
+
+    # 4. Provision the Python Runtime 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
-    # 4. Fetch the Project Pipeline Packages
+    # 5. Fetch the Project Pipeline Packages
     - name: Install Dependencies
       run: |
         pip install flet gspread google-auth
 
-    # 5. Inject the secure secret into the build assets tree dynamically
+    # 6. Inject the secure secret into the build assets tree dynamically
     - name: Hydrate Service Account Key
       run: |
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-    # 6. Execute compilation using the Official Flet Action Bundle
+    # 7. Execute compilation directly via standard Flet Command Line Interface
     - name: Run Flet Build Engine
-      uses: flet-dev/flet-build-action@v1
-      with:
-        target: apk
-        build-number: ${{ github.run_number }}
+      run: |
+        flet build apk
 
-    # 7. Deliver the Finalized Installation Package
+    # 8. Deliver the Finalized Installation Package
     - name: Upload Finalized APK Artifact
       uses: actions/upload-artifact@v4
       with:
