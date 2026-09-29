@@ -20,12 +20,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. Setup Flutter Environment (Required natively under-the-hood by Flet)
+    # 3. Setup Flutter Environment (Updated to match your exact Flet framework version requirements)
     - name: Set up Flutter Toolchain
       uses: subosito/flutter-action@v2
       with:
         channel: 'stable'
-        flutter-version: '3.24.0'
+        flutter-version: '3.44.8'
 
     # 4. Provision the Python Runtime 
     - name: Set up Python
@@ -44,10 +44,10 @@ jobs:
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-    # 7. Execute compilation directly via standard Flet Command Line Interface
+    # 7. Execute compilation (Added --no-interactive flag to prevent automated prompt freezes)
     - name: Run Flet Build Engine
       run: |
-        flet build apk
+        flet build apk --no-interactive
 
     # 8. Deliver the Finalized Installation Package
     - name: Upload Finalized APK Artifact
