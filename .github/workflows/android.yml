@@ -5,20 +5,40 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch: # Allows manual trigger testing anytime
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    # 1. Pull the codebase cleanly
     - uses: actions/checkout@v4
+
+    # 2. Boot Up Java (Updated to latest v4 setup matching Flet's underlying requirements)
     - uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
-    - run: chmod +x gradlew
-    - run: ./gradlew assembleDebug
-    - uses: actions/upload-artifact@v4
+
+    # 3. Provision the Python Runtime
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        name: android-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        python-version: '3.11'
+
+    # 4. Fetch the Project Pipeline Packages
+    - name: Install Dependencies
+      run: |
+        pip install flet gspread google-auth
+
+    # 5. Compile the App to a Mobile Release APK
+    - name: Execute Flet Compiler
+      run: |
+        flet build apk
+
+    # 6. Deliver the Finalized Installation Package
+    - name: Upload Finalized APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TempleTracker-Android-APK
+        path: build/apk/*.apk  # Target directory where Flet outputs the packaged file
