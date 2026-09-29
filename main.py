@@ -9,10 +9,17 @@ from google.oauth2.service_account import Credentials
 sys.stdout.reconfigure(line_buffering=True)
 
 # ==============================================================================
-# 🚀 UNIVERSAL PORTABLE PATH ENGINE
+# 🚀 ADAPTIVE PORTABLE PATH ENGINE (DESKTOP & PACKAGED APK COMPATIBLE)
 # ==============================================================================
 CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__)) if __file__ else os.getcwd()
-TARGET_JSON_PATH = os.path.join(CURRENT_FOLDER, "service_account.json")
+
+# If running inside a packaged mobile APK, "assets" becomes the root folder.
+# On a local desktop machine, it sits inside a subfolder named "assets".
+if os.path.exists(os.path.join(CURRENT_FOLDER, "service_account.json")):
+    TARGET_JSON_PATH = os.path.join(CURRENT_FOLDER, "service_account.json")
+else:
+    TARGET_JSON_PATH = os.path.join(CURRENT_FOLDER, "assets", "service_account.json")
+
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
