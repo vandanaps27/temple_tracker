@@ -47,15 +47,17 @@ jobs:
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-    # 7. Execute compilation using Flet's bundling commands
+
+    # 7. Execute compilation using Flet's bundling commands with wsgiref forced
     - name: Run Flet Build Engine
       run: |
         FLUTTER_BIN_DIR=$(dirname $(which flutter))
         export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
         echo "Resolved Flutter Root at: $FLUTTER_ROOT"
         
-        # Build the APK (Flet automatically packages the modules listed in requirements.txt)
-        flet build apk
+        # Build the APK and force bundle the missing wsgiref standard library
+        flet build apk --source-packages wsgiref
+
 
     # 8. Deliver the Finalized Installation Package
     - name: Upload Finalized APK Artifact
