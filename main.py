@@ -1,3 +1,6 @@
+import sys
+if not hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure = lambda **kwargs: None
 import os
 import sys
 from datetime import datetime
