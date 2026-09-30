@@ -33,25 +33,28 @@ jobs:
       with:
         python-version: '3.11'
 
-    # 5. Fetch the Project Pipeline Packages
-    - name: Install Dependencies
+    # 5. Fetch the Project Pipeline 
+    - name: Configure App Dependencies
       run: |
-        pip install flet gspread google-auth
+        pip install flet
+        echo "flet" > requirements.txt
+        echo "gspread" >> requirements.txt
+        echo "google-auth" >> requirements.txt
 
-    # 6. Inject the secure secret into the build assets tree dynamically
+    # 6. Inject the secure secret into the assets tree dynamically
     - name: Hydrate Service Account Key
       run: |
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-    # 7. Execute compilation (Dynamically mapping FLUTTER_ROOT using shell resolution)
+    # 7. Execute compilation using Flet's bundling commands
     - name: Run Flet Build Engine
       run: |
-        # Locate the precise directory where the action unpacked Flutter
         FLUTTER_BIN_DIR=$(dirname $(which flutter))
         export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
-        
         echo "Resolved Flutter Root at: $FLUTTER_ROOT"
+        
+        # Build the APK (Flet automatically packages the modules listed in requirements.txt)
         flet build apk
 
     # 8. Deliver the Finalized Installation Package
