@@ -33,13 +33,20 @@ jobs:
       with:
         python-version: '3.11'
 
-    # 5. Fetch the Project Pipeline 
+    # 5. Package Fetching + Injecting the Missing wsgiref Library Into Your Source Code
     - name: Configure App Dependencies
       run: |
         pip install flet
         echo "flet" > requirements.txt
         echo "gspread" >> requirements.txt
         echo "google-auth" >> requirements.txt
+        
+        # Locate where Python stores its standard library on this machine
+        PYTHON_LIB_DIR=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
+        
+        # Physically copy the missing wsgiref folder directly into your app root directory
+        cp -r "$PYTHON_LIB_DIR/wsgiref" ./wsgiref
+        echo "Successfully injected wsgiref library into project tree."
 
     # 6. Inject the secure secret into the assets tree dynamically
     - name: Hydrate Service Account Key
@@ -47,17 +54,15 @@ jobs:
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-
-    # 7. Execute compilation using Flet's bundling commands with wsgiref forced
+    # 7. Execute compilation using standard Flet commands
     - name: Run Flet Build Engine
       run: |
         FLUTTER_BIN_DIR=$(dirname $(which flutter))
         export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
         echo "Resolved Flutter Root at: $FLUTTER_ROOT"
         
-        # Build the APK and force bundle the missing wsgiref standard library
-        flet build apk --source-packages wsgiref
-
+        # Compile the APK (Flet will now grab the wsgiref folder and package it inside)
+        flet build apk
 
     # 8. Deliver the Finalized Installation Package
     - name: Upload Finalized APK Artifact
