@@ -1,6 +1,3 @@
-import sys
-if not hasattr(sys.stdout, 'reconfigure'):
-    sys.stdout.reconfigure = lambda **kwargs: None
 import os
 import sys
 from datetime import datetime
@@ -8,8 +5,6 @@ import flet as ft
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Force terminal outputs to flush instantly for real-time diagnostic logging
-sys.stdout.reconfigure(line_buffering=True)
 
 # ==============================================================================
 # 🚀 ADAPTIVE PORTABLE PATH ENGINE (DESKTOP & PACKAGED APK COMPATIBLE)
