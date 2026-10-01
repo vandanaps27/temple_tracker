@@ -18,7 +18,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Java
+      # 2. Java 17
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -37,16 +37,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade flet
 
-      # 5. Application dependencies
-      - name: Create Requirements File
-        run: |
-          cat > requirements.txt <<'EOF'
-          flet
-          gspread
-          google-auth
-          EOF
-
-      # 6. Google service account
+      # 5. Google Service Account
       - name: Hydrate Service Account Key
         env:
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
@@ -61,17 +52,28 @@ jobs:
           printf '%s' "$SERVICE_ACCOUNT_JSON" > assets/service_account.json
 
           test -s assets/service_account.json
+
           echo "Service account file created."
 
-      # 7. Show versions
+      # 6. Verify environment
       - name: Verify Build Environment
         run: |
+          echo "Python:"
           python --version
+
+          echo "Flet:"
           flet --version
+
+          echo "Java:"
           java -version
 
-      # 8. Generate the Flet project
-      - name: Prepare Flet Build
+      # 7. Clean previous Flet build
+      - name: Clean Flet Build
+        run: |
+          flet clean
+
+      # 8. Build APK
+      - name: Build Android APK
         run: |
           flet build apk --yes --verbose
 
