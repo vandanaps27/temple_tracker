@@ -2,82 +2,80 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch: 
+    branches: ["main"]
+
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    # 1. Pull the codebase cleanly
-    - uses: actions/checkout@v4
+      # 1. Checkout source code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    # 2. Boot Up Java JDK required by the internal Android SDK compiler
-    - uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      # 2. Java 17 for Android/Flet build
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
 
-    # 3. Setup Flutter Environment
-    - name: Set up Flutter Toolchain
-      uses: subosito/flutter-action@v2
-      with:
-        channel: 'stable'
-        flutter-version: '3.44.8'
+      # 3. Python environment
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    # 4. Provision the Python Runtime 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    # 5. Package Fetching + Global Dependency Engineering
-    - name: Configure App Dependencies
-      run: |
-        pip install flet
-        echo "flet" > requirements.txt
-        echo "gspread" >> requirements.txt
-        echo "google-auth" >> requirements.txt
-        echo "charset-normalizer" >> requirements.txt
-        
-        PYTHON_LIB_DIR=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
-        cp -r "$PYTHON_LIB_DIR/wsgiref" ./wsgiref
+      # 4. Install the EXACT Flet version used by the application
+      - name: Install Flet
+        run: |
+          python -m pip install --upgrade pip
+          pip install "flet==0.86.5"
 
-        pip install --target ./patch_env gspread google-auth charset-normalizer
-        
-        TARGET_LOG_FILE="./patch_env/google/oauth2/_client_log_status.py"
-        if [ -f "$TARGET_LOG_FILE" ]; then
-          sed -i 's/sys.stdout.reconfigure(encoding="utf-8")/pass/g' "$TARGET_LOG_FILE"
-          sed -i 's/sys.stderr.reconfigure(encoding="utf-8")/pass/g' "$TARGET_LOG_FILE"
-        fi
+      # 5. Define application dependencies
+      - name: Create Requirements File
+        run: |
+          cat > requirements.txt <<'EOF'
+          flet==0.86.5
+          gspread
+          google-auth
+          EOF
 
-        cp -r ./patch_env/* ./
-        rm -rf ./patch_env
+      # 6. Inject Google Service Account credential
+      - name: Hydrate Service Account Key
+        env:
+          SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p assets
 
-    # 6. Inject the secure secret into the assets tree dynamically
-    - name: Hydrate Service Account Key
-      run: |
-        mkdir -p assets
-        echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
+          if [ -z "$SERVICE_ACCOUNT_JSON" ]; then
+            echo "ERROR: SERVICE_ACCOUNT_JSON GitHub secret is empty."
+            exit 1
+          fi
 
-    # 7. Execute compilation forcing global version pinning directly via Flutter's cache engine
-    - name: Run Flet Build Engine
-      run: |
-        FLUTTER_BIN_DIR=$(dirname $(which flutter))
-        export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
-        echo "Resolved Flutter Root at: $FLUTTER_ROOT"
-        
-        # Pre-download the correct working version of the JNI package into the machine cache
-        $FLUTTER_ROOT/bin/flutter pub cache add jni:1.1.0
-        
-        # Run a pure, standard Flet build pass free of non-supported flags
-        flet build apk
+          printf '%s' "$SERVICE_ACCOUNT_JSON" > assets/service_account.json
 
-    # 8. Deliver the Finalized Installation Package
-    - name: Upload Finalized APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: TempleTracker-Android-APK
-        path: build/apk/*.apk
+          echo "Service account file created."
+          test -s assets/service_account.json
+
+      # 7. Build Android APK
+      #
+      # IMPORTANT:
+      # Do NOT manually install Flutter/JNI packages here.
+      # Flet manages the Android build toolchain.
+      - name: Build Android APK
+        run: |
+          flet build apk
+
+      # 8. Upload generated APK
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TempleTracker-Android-APK
+          path: build/apk/*.apk
+          if-no-files-found: error
