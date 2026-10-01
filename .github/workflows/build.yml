@@ -33,14 +33,14 @@ jobs:
       with:
         python-version: '3.11'
         
-    # 5. Package Fetching + Injecting the Missing wsgiref Library Into Your Source Code
+       # 5. Package Fetching + Injecting the Missing wsgiref Library Into Your Source Code
     - name: Configure App Dependencies
       run: |
         pip install flet
         echo "flet" > requirements.txt
         echo "gspread" >> requirements.txt
         echo "google-auth" >> requirements.txt
-        echo "charset_normalizer" >> requirements.txt
+        echo "charset-normalizer" >> requirements.txt
         
         # Locate where Python stores its standard library on this machine
         PYTHON_LIB_DIR=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
@@ -49,6 +49,14 @@ jobs:
         cp -r "$PYTHON_LIB_DIR/wsgiref" ./wsgiref
         echo "Successfully injected wsgiref library into project tree."
 
+        # Create a sitecustomize.py file to patch sys.stdout before ANY package loads
+        mkdir -p site-packages
+        echo "import sys" > site-packages/sitecustomize.py
+        echo "if hasattr(sys, 'stdout') and not hasattr(sys.stdout, 'reconfigure'):" >> site-packages/sitecustomize.py
+        echo "    sys.stdout.reconfigure = lambda **kwargs: None" >> site-packages/sitecustomize.py
+        echo "if hasattr(sys, 'stderr') and not hasattr(sys.stderr, 'reconfigure'):" >> site-packages/sitecustomize.py
+        echo "    sys.stderr.reconfigure = lambda **kwargs: None" >> site-packages/sitecustomize.py
+        echo "Global site-packages runtime patch deployed."
 
     # 6. Inject the secure secret into the assets tree dynamically
     - name: Hydrate Service Account Key
