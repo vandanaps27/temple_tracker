@@ -572,5 +572,6 @@ def main(page: ft.Page):
         calculate_dues(None)
     except Exception as sync_err:
         balance_text.value = f"Offline Sync Failure: {sync_err}"
-        balance_text.color = ft.Colors.RED_700page.update()
+        balance_text.color = ft.Colors.RED_700
+        page.update()
 ft.run(main)
