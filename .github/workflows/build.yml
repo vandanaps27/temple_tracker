@@ -63,20 +63,28 @@ jobs:
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-        # 7. Execute compilation using Flet's bundling engine with forced dependency overrides
+      # 7. Execute compilation using Flet's bundling engine with manual folder patches
     - name: Run Flet Build Engine
       run: |
         FLUTTER_BIN_DIR=$(dirname $(which flutter))
         export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
         echo "Resolved Flutter Root at: $FLUTTER_ROOT"
         
-        # 7a. Hard-code a custom override specification file
-        echo "dependency_overrides:" > custom_pubspec.yaml
-        echo "  jni: ^1.1.0" >> custom_pubspec.yaml
-        echo "  jni_flutter: ^1.0.4" >> custom_pubspec.yaml
+        # 7a. Tell Flet to create the base application package shell
+        flet build apk --no-template-update || true
         
-        # 7b. Run compilation utilizing the pubspec override file to force clean versions
-        flet build apk --pub-spec-override custom_pubspec.yaml
+        # 7b. Inject the version overrides directly into the generated Flutter build tree
+        BUILD_DIR="build/apk"
+        if [ -d "$BUILD_DIR" ]; then
+          echo "Injecting dependency patches into $BUILD_DIR..."
+          echo "dependency_overrides:" >> "$BUILD_DIR/pubspec.yaml"
+          echo "  jni: ^1.1.0" >> "$BUILD_DIR/pubspec.yaml"
+          echo "  jni_flutter: ^1.0.4" >> "$BUILD_DIR/pubspec.yaml"
+        fi
+        
+        # 7c. Run the final compilation pass without using the unrecognized flag
+        flet build apk
+
 
 
     # 8. Deliver the Finalized Installation Package
