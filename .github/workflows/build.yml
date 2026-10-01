@@ -18,43 +18,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Java 17 required by Android/Flet
+      # 2. Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
 
-      # 3. Setup Flutter version required by Flet 0.86.5
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-          flutter-version: "3.44.8"
-          cache: true
-
-      # 4. Setup Python
+      # 3. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
-      # 5. Install the exact Flet version used by the application
+      # 4. Install latest stable Flet
       - name: Install Flet
         run: |
           python -m pip install --upgrade pip
-          pip install "flet==0.86.5"
+          pip install --upgrade flet
 
-      # 6. Application dependencies
+      # 5. Application dependencies
       - name: Create Requirements File
         run: |
           cat > requirements.txt <<'EOF'
-          flet==0.86.5
+          flet
           gspread
           google-auth
           EOF
 
-      # 7. Inject Google Service Account credential
+      # 6. Inject Google Service Account credential
       - name: Hydrate Service Account Key
         env:
           SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
@@ -71,7 +63,7 @@ jobs:
           echo "Service account file created."
           test -s assets/service_account.json
 
-      # 8. Verify build environment
+      # 7. Verify build environment
       - name: Verify Build Environment
         run: |
           echo "Python:"
@@ -81,17 +73,17 @@ jobs:
           flet --version
 
           echo "Flutter:"
-          flutter --version
+          flutter --version || true
 
           echo "Java:"
           java -version
 
-      # 9. Build APK
+      # 8. Build Android APK
       - name: Build Android APK
         run: |
-          flet build apk --yes
+          flet build apk --yes --verbose
 
-      # 10. Upload APK
+      # 9. Upload APK
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
