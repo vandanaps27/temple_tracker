@@ -33,7 +33,7 @@ jobs:
       with:
         python-version: '3.11'
         
-       # 5. Package Fetching + Injecting the Missing wsgiref Library Into Your Source Code
+       # 5. Package Fetching + Global Dependency Engineering
     - name: Configure App Dependencies
       run: |
         pip install flet
@@ -42,21 +42,20 @@ jobs:
         echo "google-auth" >> requirements.txt
         echo "charset-normalizer" >> requirements.txt
         
-        # Locate where Python stores its standard library on this machine
         PYTHON_LIB_DIR=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
-        
-        # Physically copy the missing wsgiref folder directly into your app root directory
         cp -r "$PYTHON_LIB_DIR/wsgiref" ./wsgiref
-        echo "Successfully injected wsgiref library into project tree."
 
-        # Create a sitecustomize.py file to patch sys.stdout before ANY package loads
-        mkdir -p site-packages
-        echo "import sys" > site-packages/sitecustomize.py
-        echo "if hasattr(sys, 'stdout') and not hasattr(sys.stdout, 'reconfigure'):" >> site-packages/sitecustomize.py
-        echo "    sys.stdout.reconfigure = lambda **kwargs: None" >> site-packages/sitecustomize.py
-        echo "if hasattr(sys, 'stderr') and not hasattr(sys.stderr, 'reconfigure'):" >> site-packages/sitecustomize.py
-        echo "    sys.stderr.reconfigure = lambda **kwargs: None" >> site-packages/sitecustomize.py
-        echo "Global site-packages runtime patch deployed."
+        pip install --target ./patch_env gspread google-auth charset-normalizer
+        
+        TARGET_LOG_FILE="./patch_env/google/oauth2/_client_log_status.py"
+        if [ -f "$TARGET_LOG_FILE" ]; then
+          sed -i 's/sys.stdout.reconfigure(encoding="utf-8")/pass/g' "$TARGET_LOG_FILE"
+          sed -i 's/sys.stderr.reconfigure(encoding="utf-8")/pass/g' "$TARGET_LOG_FILE"
+        fi
+
+        cp -r ./patch_env/* ./
+        rm -rf ./patch_env
+
 
     # 6. Inject the secure secret into the assets tree dynamically
     - name: Hydrate Service Account Key
