@@ -63,15 +63,21 @@ jobs:
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-    # 7. Execute compilation using standard Flet commands
+        # 7. Execute compilation using Flet's bundling engine with forced dependency overrides
     - name: Run Flet Build Engine
       run: |
         FLUTTER_BIN_DIR=$(dirname $(which flutter))
         export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
         echo "Resolved Flutter Root at: $FLUTTER_ROOT"
         
-        # Compile the APK (Flet will now grab the wsgiref folder and package it inside)
-        flet build apk
+        # 7a. Hard-code a custom override specification file
+        echo "dependency_overrides:" > custom_pubspec.yaml
+        echo "  jni: ^1.1.0" >> custom_pubspec.yaml
+        echo "  jni_flutter: ^1.0.4" >> custom_pubspec.yaml
+        
+        # 7b. Run compilation utilizing the pubspec override file to force clean versions
+        flet build apk --pub-spec-override custom_pubspec.yaml
+
 
     # 8. Deliver the Finalized Installation Package
     - name: Upload Finalized APK Artifact
