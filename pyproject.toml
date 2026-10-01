@@ -1,0 +1,13 @@
+[project]
+name = "temple_tracker"
+version = "1.0.0"
+description = "Temple Tracker"
+requires-python = ">=3.10"
+dependencies = [
+    "flet",
+    "gspread",
+    "google-auth",
+]
+
+[tool.flet.flutter.pubspec.dependency_overrides]
+jni = "1.1.0"
