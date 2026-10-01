@@ -33,7 +33,7 @@ jobs:
       with:
         python-version: '3.11'
         
-       # 5. Package Fetching + Global Dependency Engineering
+    # 5. Package Fetching + Global Dependency Engineering
     - name: Configure App Dependencies
       run: |
         pip install flet
@@ -56,36 +56,24 @@ jobs:
         cp -r ./patch_env/* ./
         rm -rf ./patch_env
 
-
     # 6. Inject the secure secret into the assets tree dynamically
     - name: Hydrate Service Account Key
       run: |
         mkdir -p assets
         echo '${{ secrets.SERVICE_ACCOUNT_JSON }}' > assets/service_account.json
 
-      # 7. Execute compilation using Flet's bundling engine with manual folder patches
+    # 7. Execute compilation forcing global version pinning directly via Flutter's cache engine
     - name: Run Flet Build Engine
       run: |
         FLUTTER_BIN_DIR=$(dirname $(which flutter))
         export FLUTTER_ROOT=$(dirname "$FLUTTER_BIN_DIR")
         echo "Resolved Flutter Root at: $FLUTTER_ROOT"
         
-        # 7a. Tell Flet to create the base application package shell
-        flet build apk --no-template-update || true
+        # Pre-download the correct working version of the JNI package into the machine cache
+        $FLUTTER_ROOT/bin/flutter pub cache add jni:1.1.0
         
-        # 7b. Inject the version overrides directly into the generated Flutter build tree
-        BUILD_DIR="build/apk"
-        if [ -d "$BUILD_DIR" ]; then
-          echo "Injecting dependency patches into $BUILD_DIR..."
-          echo "dependency_overrides:" >> "$BUILD_DIR/pubspec.yaml"
-          echo "  jni: ^1.1.0" >> "$BUILD_DIR/pubspec.yaml"
-          echo "  jni_flutter: ^1.0.4" >> "$BUILD_DIR/pubspec.yaml"
-        fi
-        
-        # 7c. Run the final compilation pass without using the unrecognized flag
+        # Run a pure, standard Flet build pass free of non-supported flags
         flet build apk
-
-
 
     # 8. Deliver the Finalized Installation Package
     - name: Upload Finalized APK Artifact
